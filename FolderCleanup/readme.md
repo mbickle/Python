@@ -1,4 +1,4 @@
-#FolderCleanup 
+# FolderCleanup 
 Script to clean up folders/files that are over X days old
 
 This is a rework of the Powershell script version.
