@@ -49,8 +49,8 @@ By default, this writes:
 
 | File | Contents |
 | --- | --- |
-| `data/breweries.json` | Shared metadata and normalized brewery records |
-| `data/stats.json` | Shared metadata and generated statistics |
+| `data/breweries.json`       | Shared metadata and normalized brewery records |
+| `data/breweries-stats.json` | Shared metadata and generated statistics |
 
 Diagnostics are not run unless requested.
 
