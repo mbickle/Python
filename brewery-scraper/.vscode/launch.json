@@ -1,0 +1,67 @@
+
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Brewery Scraper",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/main.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "justMyCode": true
+        },
+        {
+            "name": "Brewery Scraper - All Diagnostics",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/main.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "args": [
+                "--diagnostics",
+                "all"
+            ],
+            "justMyCode": true
+        },
+        {
+            "name": "Brewery Scraper - Parent Coverage",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/main.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "args": [
+                "--diagnostics",
+                "parent-coverage"
+            ],
+            "justMyCode": true
+        },
+        {
+            "name": "Pytest - All Tests",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pytest",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "args": [
+                "tests",
+                "-v"
+            ],
+            "justMyCode": true
+        },
+        {
+            "name": "Pytest - Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pytest",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "args": [
+                "${file}",
+                "-v"
+            ],
+            "justMyCode": true
+        }
+    ]
+}
