@@ -62,6 +62,22 @@
                 "-v"
             ],
             "justMyCode": true
-        }
+        },
+        {
+            "name": "Pytest - Coverage",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pytest",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "args": [
+                "--cov=scraper",
+                "--cov-branch",
+                "--cov-report=term-missing",
+                "--cov-report=html",
+                "-v"
+            ],
+            "justMyCode": true
+        }        
     ]
 }
