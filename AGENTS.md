@@ -32,4 +32,4 @@ Verification order: `pytest` → `ruff check` → `--list-diagnostics`.
 
 `docs/DEVELOPMENT.md`, `docs/CLI.md`, `docs/PIPELINE.md`, `docs/DATA_MODEL.md`, and `docs/DIAGNOSTICS.md` describe the current code. Keep the matching doc in sync when behavior changes: skip-and-report behavior in `PIPELINE.md`, registry entries in `DIAGNOSTICS.md`, options and defaults in `CLI.md`.
 
-`docs/PLAN.md` and `docs/BACKLOG.md` are aspirational — they are not a description of what exists today.
+`docs/BACKLOG.md` is aspirational — it is not a description of what exists today.

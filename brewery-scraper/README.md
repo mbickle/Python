@@ -2,7 +2,7 @@
 
 A Python command-line tool that retrieves brewery records from the [Brewers Association](https://www.brewersassociation.org/), normalizes them into a consistent structure, classifies them, and exports JSON datasets, statistics, and optional diagnostic reports.
 
-> **Project status:** Work in progress. A learning project — Python practice from someone who likes beer. May grow into a bigger brewery-finder app over time (see `docs/PLAN.md`).
+> **Project status:** Work in progress. A learning project — Python practice from someone who likes beer. May grow into a bigger brewery-finder app over time.
 
 ## What it does
 
@@ -99,7 +99,6 @@ This is a third-party published dataset and may change in availability, schema, 
 | `docs/DATA_MODEL.md` | Output file formats, the `Brewery` model, classification rules |
 | `docs/CLI.md` | Full command-line reference with examples |
 | `docs/DIAGNOSTICS.md` | How diagnostics work and how to add one |
-| `docs/PLAN.md` | Long-term vision: the brewery discovery platform |
 | `docs/BACKLOG.md` | Backlog of ideas and future work |
 
 ## Possible next steps
