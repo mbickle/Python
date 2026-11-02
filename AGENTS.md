@@ -8,18 +8,20 @@ Run from `brewery-scraper/` with the `.venv` venv (Windows scripts, `.venv\Scrip
 
 ```powershell
 python -m pytest                      # offline, ~2s — network is monkeypatched
-ruff check scraper tests              # must pass before committing
+ruff check scraper tests main.py     # must pass before committing
 python main.py --list-diagnostics     # safe offline CLI check
-python main.py --input data/breweries.json --stats-output /tmp/stats.json   # offline stats from the committed export
-python main.py                        # fetches LIVE network data, overwrites data/*.json
+python main.py --input data/breweries.json --stats-output /tmp/stats.json   # offline stats from a local export (run once first)
+python main.py                        # reuses data/raw cache (downloads once), overwrites data/*.json
+python main.py --refresh              # forces a fresh download before exporting
 ```
 
 Verification order: `pytest` → `ruff check` → `--list-diagnostics`.
 
 ## Gotchas
 
-- `data/*.json` are committed generated artifacts (the root `.gitignore` does not exclude them). Running `main.py` rewrites them with a new `generated_at` timestamp — don't commit these churns as code changes.
+- Nothing under `data/` is committed: the whole directory is gitignored, including the raw source cache and every export. A fresh clone has no data — the first run downloads it (or pass `--refresh`), and `--input` has nothing to read until then.
 - Tests must stay offline: `tests/test_fetch.py` mocks `requests.get` via `monkeypatch`. Never add tests that hit the real Brewers Association URL.
+- `data/` is gitignored. Tests that run without `--input`/`--raw-input` must take the `raw_cache` fixture (or monkeypatch `scraper.cli.DEFAULT_RAW_PATH`) or they will write into the real cache path.
 - `tests/conftest.py` provides a `raw_brewery` fixture factory for realistic Salesforce-shaped source dicts — reuse it instead of crafting raw records inline.
 - Household detection is `is_household()` in `scraper/classify.py`. Classification and the household diagnostics both call it; don't reintroduce substring checks on names.
 - `pyproject.toml` holds packaging metadata, the console entry point, and pytest config (`testpaths`, `pythonpath`); runtime dependencies are read from `requirements.txt`, so keep that file authoritative. There is still no ruff config, so ruff applies a built-in rule set beyond the classic `E`/`F` codes (it flags `UP017`, `BLE001`). Run `ruff check scraper tests` rather than assuming which rules are active.

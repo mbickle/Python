@@ -10,8 +10,8 @@ readme = "README.md"
 requires-python = ">=3.11"
 dynamic = ["dependencies"]
 
-[project.optional-dependencies]
-dev = ["pytest", "pytest-cov", "ruff"]
+# Development dependencies live in requirements-dev.txt (which also pulls in
+# requirements.txt) — that file stays the single source for both.
 
 [project.scripts]
 brewery-scraper = "scraper.cli:main"

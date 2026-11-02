@@ -30,6 +30,17 @@ def clean_text(value):
     return value or None
 
 
+def normalize_flag(value):
+    """
+    Normalize a source boolean flag.
+    Returns True/False for real booleans, otherwise None.
+    """
+    if isinstance(value, bool):
+        return value
+
+    return None
+
+
 def normalize_code(value):
     """
     Standardize geographic codes.
@@ -154,6 +165,10 @@ def normalize_brewery(item):
 
         parent_id=parent.get("Id"),
         parent_name=parent.get("Name"),
+
+        is_craft_brewery=normalize_flag(
+            item.get("Is_Craft_Brewery__c")
+        ),
     )
 
     brewery.record_category = classify_brewery(brewery)

@@ -32,5 +32,5 @@ dist/
 .DS_Store
 Thumbs.db
 
-# Local raw source snapshot (downloaded, never committed)
-brewery-scraper/data/raw/
+# Local data: raw source cache and generated exports (never committed)
+brewery-scraper/data/

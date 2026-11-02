@@ -59,3 +59,43 @@ def load_breweries(filename: str) -> tuple[list[Brewery], dict[str, Any]]:
     }
 
     return breweries, metadata
+
+
+def save_raw_records(records, filename: str) -> None:
+    """
+    Write source records to a cache file, compactly.
+
+    Deliberately not pretty-printed: a source snapshot is around
+    15 MB, and this file exists for reprocessing rather than reading.
+    """
+    output_path = Path(filename)
+
+    output_path.parent.mkdir(
+        parents=True,
+        exist_ok=True
+    )
+
+    with output_path.open("w", encoding="utf-8") as f:
+        json.dump(records, f, ensure_ascii=False)
+
+
+def load_raw_records(filename: str) -> list[dict[str, Any]]:
+    """
+    Load a raw source snapshot saved by save_raw_records().
+
+    Raises:
+        TypeError: If the file is not a JSON array of objects.
+    """
+    records = json.loads(
+        Path(filename).read_text(encoding="utf-8")
+    )
+
+    if not isinstance(records, list):
+        raise TypeError(f"{filename}: expected a JSON array of records")
+
+    if not all(isinstance(item, dict) for item in records):
+        raise TypeError(
+            f"{filename}: expected every record to be a JSON object"
+        )
+
+    return records

@@ -6,7 +6,7 @@ A Python command-line tool that retrieves brewery records from the [Brewers Asso
 
 ## What it does
 
-- Fetches the Brewers Association's published JSON data.
+- Fetches the Brewers Association's published JSON data, caching the download under `data/raw/` (gitignored) so later runs reuse it instead of re-fetching.
 - Normalizes source records into `Brewery` models (see `docs/DATA_MODEL.md`).
 - Classifies records into categories such as `brewery`, `brewing_business`, `planning`, `location`, `household`, and `unclassified`.
 - Generates summary statistics, including geographic coverage and parent-child relationships.
@@ -24,7 +24,7 @@ pip install -r requirements-dev.txt
 python main.py
 ```
 
-Or install it as a command (`pip install -e .`), then run `brewery-scraper` from anywhere.
+Or install it as a command (`pip install -e .`), then run `brewery-scraper` from the project directory — output and cache paths are relative to the current directory.
 
 By default, this writes:
 
@@ -43,6 +43,8 @@ Diagnostics are not run unless requested.
 | `--stats-output PATH` | Statistics JSON output; default `data/breweries-stats.json` |
 | `--url URL` | Override the source JSON URL |
 | `--input PATH` | Reuse an existing brewery export instead of fetching; writes stats and normalized diagnostics only |
+| `--raw-input PATH` | Use a saved raw source snapshot instead of downloading; supports every diagnostic |
+| `--refresh` | Download the source again instead of using the cached copy |
 | `--list-diagnostics` | Show available diagnostic names without fetching data |
 | `--diagnostics NAME [NAME ...]` | Run one or more named reports; use `all` for every registered report |
 | `--diagnostics-output PATH` | Diagnostics JSON output; default `data/diagnostics.json` |
@@ -75,10 +77,10 @@ brewery-scraper/
 │   ├── classify.py         # Derived record categories
 │   ├── stats.py            # Regular summary statistics
 │   ├── diagnostics.py      # Optional investigative reports
-│   └── export.py           # General-purpose JSON writer
+│   └── export.py           # JSON read/write helpers
 ├── tests/                  # pytest test suite
 ├── docs/                   # Detailed documentation
-└── data/                   # Default generated output files
+└── data/                   # Generated exports + raw cache (gitignored)
 ```
 
 How the pieces fit together: `docs/PIPELINE.md`.

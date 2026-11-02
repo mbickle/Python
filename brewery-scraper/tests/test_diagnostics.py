@@ -6,6 +6,7 @@ from scraper.diagnostics import (
     analyze_parent_coverage,
     analyze_parent_relationships,
     analyze_raw_record_types,
+    analyze_source_fields,
     analyze_unknown_brewery_types,
     analyze_unknown_types_by_country,
     analyze_us_missing_region,
@@ -381,3 +382,62 @@ def test_get_us_region_pairs():
 def test_run_diagnostics_unknown_name_raises():
     with pytest.raises(ValueError, match="Unknown diagnostic"):
         run_diagnostics(["no-such-report"], [], [])
+
+
+def test_source_fields_inventory(raw_brewery):
+    raw_data = [
+        raw_brewery(name="Alpha Brewing", country="United States"),
+        {"Id": "002", "Name": "Beta Brewing"},
+    ]
+
+    result = analyze_source_fields(raw_data)
+
+    assert result["total_records"] == 2
+    assert result["field_count"] == len(result["fields"])
+
+    fields = {f["field"]: f for f in result["fields"]}
+
+    assert fields["Name"]["present"] == 2
+    assert fields["Name"]["present_pct"] == 100.0
+    assert fields["Name"]["examples"] == ["Alpha Brewing", "Beta Brewing"]
+
+    # Nested objects are flattened into dotted names.
+    assert fields["BillingAddress.country"]["present"] == 1
+    assert fields["BillingAddress.country"]["present_pct"] == 50.0
+    assert fields["BillingAddress.country"]["examples"] == ["United States"]
+
+    # A null value still counts as present, and is typed as NoneType.
+    assert fields["Parent"]["present"] == 1
+    assert fields["Parent"]["types"] == ["NoneType"]
+    assert fields["Parent"]["examples"] == []
+
+    assert fields["Is_Craft_Brewery__c"]["types"] == ["bool"]
+
+
+def test_source_fields_sorted_by_presence(raw_brewery):
+    raw_data = [
+        raw_brewery(name="Alpha Brewing"),
+        {"Id": "002", "Name": "Beta Brewing"},
+    ]
+
+    result = analyze_source_fields(raw_data)
+
+    percentages = [field["present_pct"] for field in result["fields"]]
+    assert percentages == sorted(percentages, reverse=True)
+
+    # Ties keep source order, so Id and Name (both 100%) lead.
+    assert {"Id", "Name"} <= {
+        field["field"] for field in result["fields"][:2]
+    }
+
+
+def test_source_fields_empty_source():
+    assert analyze_source_fields([]) == {
+        "total_records": 0,
+        "field_count": 0,
+        "fields": [],
+    }
+
+
+def test_source_fields_registered():
+    assert "source-fields" in available_diagnostics()

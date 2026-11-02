@@ -25,6 +25,7 @@ Run `python main.py --list-diagnostics` for the authoritative list. Current repo
 | `raw-record-types` | raw | Source classification, membership, and flag values |
 | `unknown-brewery-types` | raw | Raw records without a brewery type |
 | `unknown-types-by-country` | raw | Missing types and address coverage by country |
+| `source-fields` | raw | Field inventory: presence, inferred types, and examples |
 | `parent-coverage` | normalized | Parent/child coverage in normalized records |
 | `household-records` | normalized | Records whose names end with the word "household" |
 | `us-unknown-types` | normalized | US records with no normalized brewery type |

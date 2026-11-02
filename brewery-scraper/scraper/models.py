@@ -26,3 +26,6 @@ class Brewery(BaseModel):
     parent_id: str | None = None
     parent_name: str | None = None
     record_category: str | None = None
+
+    # Source's craft designation flag (Is_Craft_Brewery__c); not derived.
+    is_craft_brewery: bool | None = None

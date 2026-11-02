@@ -6,6 +6,7 @@ from scraper.normalize import (
     normalize_breweries,
     normalize_brewery,
     normalize_code,
+    normalize_flag,
     normalize_phone,
 )
 
@@ -110,3 +111,25 @@ def test_normalize_breweries_does_not_swallow_code_bugs(monkeypatch):
 
     with pytest.raises(RuntimeError, match="bug in normalize_brewery"):
         normalize_breweries([{"Id": "001", "Name": "Test Brewing"}])
+
+
+def test_normalize_flag_accepts_booleans():
+    assert normalize_flag(True) is True
+    assert normalize_flag(False) is False
+
+
+@pytest.mark.parametrize("value", [None, "true", 1, "", "False"])
+def test_normalize_flag_returns_none_for_other_values(value):
+    assert normalize_flag(value) is None
+
+
+def test_normalize_brewery_sets_craft_flag(raw_brewery):
+    assert normalize_brewery(raw_brewery(craft=True)).is_craft_brewery is True
+    assert normalize_brewery(raw_brewery(craft=False)).is_craft_brewery is False
+
+
+def test_normalize_brewery_craft_flag_missing_is_none(raw_brewery):
+    record = raw_brewery()
+    record.pop("Is_Craft_Brewery__c")
+
+    assert normalize_brewery(record).is_craft_brewery is None

@@ -529,6 +529,68 @@ def get_us_region_pairs(breweries):
 
     return region_pairs
 
+
+def _iter_fields(item, prefix=""):
+    """Yield (dotted field name, value) pairs, flattening nested objects."""
+    for key, value in item.items():
+        name = f"{prefix}{key}"
+
+        if isinstance(value, dict):
+            yield from _iter_fields(value, prefix=f"{name}.")
+        else:
+            yield name, value
+
+
+def analyze_source_fields(raw_data):
+    """Inventory the fields present in the raw source records.
+
+    Args:
+        raw_data: Salesforce record dictionaries from the source feed.
+
+    Returns:
+        Total record count plus one entry per field, sorted by how many
+        records contain it: presence count and percentage, inferred
+        value types, and up to three example values.
+
+    Note:
+        Nested objects are flattened into dotted names
+        (BillingAddress.city, Parent.Name). Arrays are reported as
+        values rather than walked. A field that is always null still
+        appears, with NoneType among its types.
+    """
+    presence = Counter()
+    value_types = defaultdict(set)
+    examples = defaultdict(list)
+
+    for item in raw_data:
+        for field, value in _iter_fields(item):
+            presence[field] += 1
+            value_types[field].add(type(value).__name__)
+
+            if value is None:
+                continue
+
+            if value not in examples[field] and len(examples[field]) < 3:
+                examples[field].append(value)
+
+    total = len(raw_data)
+
+    return {
+        "total_records": total,
+        "field_count": len(presence),
+        "fields": [
+            {
+                "field": field,
+                "present": count,
+                "present_pct": round(count / total * 100, 1) if total else 0.0,
+                "types": sorted(value_types[field]),
+                "examples": examples[field],
+            }
+            for field, count in presence.most_common()
+        ],
+    }
+
+
 # ------------------------------------------------------------
 # Diagnostic registry
 # ------------------------------------------------------------
@@ -545,6 +607,7 @@ def get_us_region_pairs(breweries):
 # ------------------------------------------------------------
 
 RAW_DIAGNOSTICS = {
+    "source-fields": analyze_source_fields,
     "parent-relationships": analyze_parent_relationships,
     "raw-record-types": analyze_raw_record_types,
     "unknown-brewery-types": analyze_unknown_brewery_types,

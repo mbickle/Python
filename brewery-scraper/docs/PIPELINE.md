@@ -3,8 +3,9 @@
 How data flows through the tool, from download to output files.
 
 ```text
-fetch_url() ──► normalize_breweries() ──► generate_stats() ──► export_json()
-  (fetch.py)      (normalize.py)            (stats.py)          (export.py)
+data/raw cache ──┐
+--raw-input ─────┼──► normalize_breweries() ──► generate_stats() ──► export_json()
+fetch_url() ─────┘      (normalize.py)            (stats.py)          (export.py)
                        │
                        ▼
               classify_brewery()
@@ -16,13 +17,23 @@ fetch_url() ──► normalize_breweries() ──► generate_stats() ──►
 
 ## Stages
 
+### Source acquisition (cache, `--refresh`, `--raw-input`)
+
+Before anything else, the raw source is resolved (`_acquire_raw_data` in `scraper/cli.py`):
+
+- `--raw-input PATH` reads that snapshot with `load_raw_records()` and never touches the network.
+- Otherwise, if the cache at `data/raw/breweries.json` exists and neither `--refresh` nor `--url` is given, the cache is loaded and nothing is downloaded.
+- Otherwise `fetch_url()` downloads the source and `save_raw_records()` overwrites the cache with a compact JSON copy.
+
+The chosen file and its timestamp are recorded in the export metadata as `raw_source` and `raw_fetched_at`. Because this data is the original source dictionaries, both diagnostic registries can run from it, so raw diagnostics work offline.
+
 ### 0. Optional input (`--input`)
 
 With `--input PATH`, the fetch and normalize stages are skipped entirely. `load_breweries()` (`scraper/export.py`) reads a file previously written by `--output`, rebuilds `Brewery` objects from its `breweries` array, and returns the run metadata that came with it. Statistics and normalized diagnostics then run as usual, and the brewery export is skipped because the records already came from that file. Raw diagnostics are rejected, since a saved export holds no source dictionaries.
 
 ### 1. Fetch (`scraper/fetch.py`)
 
-`fetch_url(url)` downloads the source JSON with `requests` (30-second timeout), retrying up to 3 times with a 1-second delay between attempts. It validates that the response is a JSON array of objects and raises if the structure is unexpected.
+`fetch_url(url)` downloads the source JSON with `requests` (30-second timeout), retrying up to 3 times with a 1-second delay between attempts. It validates that the response is a JSON array of objects and raises if the structure is unexpected. It only runs when the cache is missing, `--refresh` is given, or `--url` overrides the source.
 
 ### 2. Normalize (`scraper/normalize.py`)
 

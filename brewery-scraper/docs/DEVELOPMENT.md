@@ -64,4 +64,5 @@ ruff check scraper tests
 ## Notes
 
 - Default CLI output paths use forward slashes (`data/breweries.json`, `data/breweries-stats.json`, `data/diagnostics.json`), so they work on any platform.
-- The files under `data/` are tracked in git. Running `python main.py` fetches live data and rewrites them, including a new `generated_at` timestamp — don't commit that churn as a code change.
+- Nothing under `data/` is tracked: the raw source cache and every generated export are gitignored. The first run downloads the source (or pass `--refresh`); after that `python main.py` reuses `data/raw/breweries.json`.
+- Tests must point `scraper.cli.DEFAULT_RAW_PATH` at `tmp_path` so they never write into the real cache path.
