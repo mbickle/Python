@@ -1,15 +1,16 @@
 # AGENTS.md
 
-Project lives in `brewery-scraper/` (Python 3.11+ CLI tool that fetches the Brewers Association JSON dataset, normalizes it to Pydantic `Brewery` models, classifies, stats, and exports JSON). Entry point: `brewery-scraper/main.py` → `scraper.cli.run_cli`.
+Project lives in `brewery-scraper/` (Python 3.11+ CLI tool that fetches the Brewers Association JSON dataset, normalizes it to Pydantic `Brewery` models, classifies, stats, and exports JSON). Entry point: `brewery-scraper/main.py` → `scraper.cli.main`, also exposed as the `brewery-scraper` console script via `pyproject.toml`.
 
 ## Commands
 
 Run from `brewery-scraper/` with the `.venv` venv (Windows scripts, `.venv\Scripts\...`):
 
 ```powershell
-python -m pytest                      # 70 tests, offline, ~2s — network is monkeypatched
+python -m pytest                      # offline, ~2s — network is monkeypatched
 ruff check scraper tests              # must pass before committing
 python main.py --list-diagnostics     # safe offline CLI check
+python main.py --input data/breweries.json --stats-output /tmp/stats.json   # offline stats from the committed export
 python main.py                        # fetches LIVE network data, overwrites data/*.json
 ```
 
@@ -20,7 +21,8 @@ Verification order: `pytest` → `ruff check` → `--list-diagnostics`.
 - `data/*.json` are committed generated artifacts (the root `.gitignore` does not exclude them). Running `main.py` rewrites them with a new `generated_at` timestamp — don't commit these churns as code changes.
 - Tests must stay offline: `tests/test_fetch.py` mocks `requests.get` via `monkeypatch`. Never add tests that hit the real Brewers Association URL.
 - `tests/conftest.py` provides a `raw_brewery` fixture factory for realistic Salesforce-shaped source dicts — reuse it instead of crafting raw records inline.
-- No project-level tool config exists (no `pyproject.toml`, `ruff.toml`, `pytest.ini`), but ruff still applies a built-in rule set beyond the classic `E`/`F` codes (it flags `UP017`, `BLE001`). Run `ruff check scraper tests` rather than assuming which rules are active.
+- Household detection is `is_household()` in `scraper/classify.py`. Classification and the household diagnostics both call it; don't reintroduce substring checks on names.
+- `pyproject.toml` holds packaging metadata, the console entry point, and pytest config (`testpaths`, `pythonpath`); runtime dependencies are read from `requirements.txt`, so keep that file authoritative. There is still no ruff config, so ruff applies a built-in rule set beyond the classic `E`/`F` codes (it flags `UP017`, `BLE001`). Run `ruff check scraper tests` rather than assuming which rules are active.
 
 ## Diagnostics convention (from `scraper/diagnostics.py`)
 

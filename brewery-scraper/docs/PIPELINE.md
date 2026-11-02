@@ -16,6 +16,10 @@ fetch_url() ──► normalize_breweries() ──► generate_stats() ──►
 
 ## Stages
 
+### 0. Optional input (`--input`)
+
+With `--input PATH`, the fetch and normalize stages are skipped entirely. `load_breweries()` (`scraper/export.py`) reads a file previously written by `--output`, rebuilds `Brewery` objects from its `breweries` array, and returns the run metadata that came with it. Statistics and normalized diagnostics then run as usual, and the brewery export is skipped because the records already came from that file. Raw diagnostics are rejected, since a saved export holds no source dictionaries.
+
 ### 1. Fetch (`scraper/fetch.py`)
 
 `fetch_url(url)` downloads the source JSON with `requests` (30-second timeout), retrying up to 3 times with a 1-second delay between attempts. It validates that the response is a JSON array of objects and raises if the structure is unexpected.
@@ -45,10 +49,12 @@ Each record is then classified (next stage) before being added to the result lis
 | Location | `location` |
 | Office only location | `office` |
 | NonBeer, Doesn't meet Criteria | `other` |
-| missing/empty (name ends with " household") | `household` |
+| missing/empty (name ends with the word "household") | `household` |
 | missing/empty (otherwise) or unrecognized type | `unclassified` |
 
 Important: `brewery_type` comes from the source; `record_category` is this project's own derived label.
+
+Household detection is defined once, as `is_household()` in `scraper/classify.py`: a name whose trailing word is "household" (case- and whitespace-insensitive). Classification and every household diagnostic use that helper, so the category and the reports cannot disagree.
 
 ### 4. Statistics (`scraper/stats.py`)
 

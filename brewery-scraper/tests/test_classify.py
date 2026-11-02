@@ -1,6 +1,7 @@
 import pytest
 
-from scraper.classify import classify_brewery
+from scraper.classify import classify_brewery, is_household
+from scraper.diagnostics import analyze_household_records
 from scraper.models import Brewery
 
 
@@ -66,3 +67,41 @@ def test_household_with_explicit_type():
 
     # An explicit brewery type takes precedence.
     assert classify_brewery(brewery) == "brewery"
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "Smith Household",
+        "smith household",
+        "  Smith Household  ",
+        "Household",
+    ],
+)
+def test_is_household_matches_trailing_word(name):
+    assert is_household(name) is True
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "Household Brewing Co",
+        "The Household Name Brewing",
+        "Households Inc",
+        "Homebrew Haven",
+        "",
+        None,
+    ],
+)
+def test_is_household_ignores_other_names(name):
+    assert is_household(name) is False
+
+
+def test_diagnostics_share_the_classification_rule():
+    breweries = [
+        Brewery(id="001", name="Smith Household"),
+        Brewery(id="002", name="Household Brewing Co"),
+    ]
+
+    # A mid-name match is not a household for either consumer.
+    assert analyze_household_records(breweries)["total_households"] == 1

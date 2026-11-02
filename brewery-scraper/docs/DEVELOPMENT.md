@@ -30,7 +30,18 @@ Runtime dependencies live in `requirements.txt`; dev dependencies (testing and l
 python -m pip install -r requirements-dev.txt
 ```
 
-`pip-install.cmd` runs that same command, so one step installs runtime and dev packages. `init.cmd` creates `.venv`, activates it, and calls `pip-install.cmd`; both scripts resolve paths relative to their own location, so they work from any directory.
+`pip-install.cmd` runs that same command, so one step installs runtime and dev packages.
+
+## Installing the package
+
+`pyproject.toml` declares the package, the `brewery-scraper` console entry point, and the pytest configuration (`testpaths`, `pythonpath`). Runtime dependencies are read from `requirements.txt`, so that file remains the place to change versions.
+
+```powershell
+pip install -e .
+brewery-scraper --list-diagnostics
+```
+
+An editable install is optional: `python main.py` works without it and is what the docs and scripts use. `init.cmd` creates `.venv`, activates it, and calls `pip-install.cmd`; both scripts resolve paths relative to their own location, so they work from any directory.
 
 ## Running the tests
 

@@ -1,5 +1,8 @@
 import json
 from pathlib import Path
+from typing import Any
+
+from scraper.models import Brewery
 
 
 def export_json(data, filename: str):
@@ -21,3 +24,38 @@ def export_json(data, filename: str):
             indent=2,
             ensure_ascii=False
         )
+
+
+def load_breweries(filename: str) -> tuple[list[Brewery], dict[str, Any]]:
+    """
+    Load a brewery export written by export_json().
+
+    Returns the normalized records plus the run metadata that
+    accompanied them (everything except the 'breweries' array).
+
+    Raises:
+        ValueError: If the file is not a brewery export payload.
+        TypeError: If the 'breweries' value is not a list.
+        pydantic.ValidationError: If a record does not match Brewery.
+    """
+    payload = json.loads(
+        Path(filename).read_text(encoding="utf-8")
+    )
+
+    if not isinstance(payload, dict) or "breweries" not in payload:
+        raise ValueError(f"{filename} is not a brewery export")
+
+    records = payload["breweries"]
+
+    if not isinstance(records, list):
+        raise TypeError(f"{filename}: 'breweries' must be a list")
+
+    breweries = [Brewery(**record) for record in records]
+
+    metadata = {
+        key: value
+        for key, value in payload.items()
+        if key != "breweries"
+    }
+
+    return breweries, metadata

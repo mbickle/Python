@@ -11,6 +11,7 @@ than writing files or printing them itself.
 
 from collections import Counter, defaultdict
 
+from scraper.classify import is_household
 from scraper.normalize import get_country_code
 
 
@@ -117,11 +118,11 @@ def analyze_unknown_brewery_types(raw_data):
     Returns:
         Counts of missing-type records, household-name matches,
         address and website presence, craft-flag values, and up to
-        30 examples that do not contain 'household' in their names.
+        30 examples whose names do not match is_household().
 
     Note:
-        Household detection is a case-insensitive substring check,
-        not a verified classification of the organization."""
+        Household detection uses is_household(), a trailing-word
+        match, not a verified classification of the organization."""
     unknown = [
         item for item in raw_data
         if not item.get("Brewery_Type__c")
@@ -137,7 +138,7 @@ def analyze_unknown_brewery_types(raw_data):
     for item in unknown:
         name = item.get("Name") or ""
 
-        if "household" in name.lower():
+        if is_household(name):
             household_count += 1
         elif len(non_household_examples) < 30:
             non_household_examples.append({
@@ -284,12 +285,12 @@ def analyze_us_unknown_types(breweries):
 
     households = [
         b for b in records
-        if "household" in (b.name or "").lower()
+        if is_household(b.name)
     ]
 
     others = [
         b for b in records
-        if "household" not in (b.name or "").lower()
+        if not is_household(b.name)
     ]
 
     return {
@@ -307,7 +308,7 @@ def analyze_us_unknown_types(breweries):
     }
 
 def analyze_household_records(breweries):
-    """Summarize normalized records whose names contain 'household'.
+    """Summarize normalized records whose names end with 'household'.
 
     Args:
         breweries: Normalized Brewery objects.
@@ -317,8 +318,8 @@ def analyze_household_records(breweries):
         type, and counts with or without a state name or code.
 
     Note:
-        The name match is case-insensitive and can occur anywhere
-        in the name; it does not depend on record_category."""
+        is_household() owns the name match, which ignores case and
+        whitespace; it does not depend on record_category."""
     total_households = 0
 
     households_by_country = Counter()
@@ -328,9 +329,9 @@ def analyze_household_records(breweries):
     without_region = 0
 
     for b in breweries:
-        name = (b.name or "").strip().lower()
+        household = is_household(b.name)
 
-        if "household" not in name:
+        if not household:
             continue
 
         total_households += 1
@@ -367,12 +368,12 @@ def analyze_household_types(missing):
     results = defaultdict(Counter)
 
     for b in missing:
-        name = (b["name"] or "").lower()
+        household = is_household(b["name"])
         brewery_type = b["brewery_type"] or "UNKNOWN"
 
         category = (
             "Household"
-            if "household" in name
+            if household
             else "Other"
         )
 
@@ -412,7 +413,7 @@ def analyze_us_missing_region(missing):
     for b in missing:
         name = (b["name"] or "").lower()
 
-        if "household" in name:
+        if is_household(b["name"]):
             name_patterns["Household"] += 1
         elif "homebrew" in name:
             name_patterns["Homebrew"] += 1

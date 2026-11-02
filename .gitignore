@@ -31,3 +31,6 @@ dist/
 # OS-generated files
 .DS_Store
 Thumbs.db
+
+# Local raw source snapshot (downloaded, never committed)
+brewery-scraper/data/raw/

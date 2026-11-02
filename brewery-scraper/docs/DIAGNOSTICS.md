@@ -9,6 +9,12 @@ The registry in `scraper/diagnostics.py` separates two kinds of analyses:
 - **Raw diagnostics** (`RAW_DIAGNOSTICS`): receive original source dictionaries, exactly as returned by `fetch_url()`. Use these to inspect source fields, Salesforce values, and raw data quirks.
 - **Normalized diagnostics** (`NORMALIZED_DIAGNOSTICS`): receive `Brewery` objects from `normalize_breweries()`. Use these to inspect the cleaned, classified dataset.
 
+Household matching uses `is_household()` from `scraper/classify.py`, the same helper that assigns `record_category`, so reports and categories agree on which records are households.
+
+### Running against an existing export
+
+With `--input PATH`, only normalized diagnostics are available. A saved brewery export contains no raw source dictionaries, so raw reports and `all` are rejected with an error; run normalized reports by name instead.
+
 ## Available reports
 
 Run `python main.py --list-diagnostics` for the authoritative list. Current reports include:
@@ -20,7 +26,7 @@ Run `python main.py --list-diagnostics` for the authoritative list. Current repo
 | `unknown-brewery-types` | raw | Raw records without a brewery type |
 | `unknown-types-by-country` | raw | Missing types and address coverage by country |
 | `parent-coverage` | normalized | Parent/child coverage in normalized records |
-| `household-records` | normalized | Records whose names contain "household" |
+| `household-records` | normalized | Records whose names end with the word "household" |
 | `us-unknown-types` | normalized | US records with no normalized brewery type |
 | `us-region-issues` | normalized | US records with missing region information |
 

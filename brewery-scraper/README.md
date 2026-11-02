@@ -24,6 +24,8 @@ pip install -r requirements-dev.txt
 python main.py
 ```
 
+Or install it as a command (`pip install -e .`), then run `brewery-scraper` from anywhere.
+
 By default, this writes:
 
 | File | Contents |
@@ -40,6 +42,7 @@ Diagnostics are not run unless requested.
 | `--output PATH` | Brewery JSON output; default `data/breweries.json` |
 | `--stats-output PATH` | Statistics JSON output; default `data/breweries-stats.json` |
 | `--url URL` | Override the source JSON URL |
+| `--input PATH` | Reuse an existing brewery export instead of fetching; writes stats and normalized diagnostics only |
 | `--list-diagnostics` | Show available diagnostic names without fetching data |
 | `--diagnostics NAME [NAME ...]` | Run one or more named reports; use `all` for every registered report |
 | `--diagnostics-output PATH` | Diagnostics JSON output; default `data/diagnostics.json` |
@@ -107,4 +110,3 @@ This is a third-party published dataset and may change in availability, schema, 
 - Add source validation and clearer handling of network failures.
 - Introduce optional filters (for example, state or record category).
 - Add dataset quality checks and track changes between runs.
-- Decide whether to commit generated `data/*.json` files or exclude them in `.gitignore`.

@@ -1,4 +1,6 @@
-from scraper.cli import run_cli
+import sys
+
+from scraper.cli import main
 
 if __name__ == "__main__":
-    run_cli()
+    sys.exit(main())
