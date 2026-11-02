@@ -1,47 +1,26 @@
 # Brewery Scraper
 
-A Python command-line tool that retrieves brewery-related records from the [Brewers Association](https://www.brewersassociation.org/), normalizes them into a consistent structure, classifies records, and exports JSON datasets, statistics, and optional diagnostic reports.
+A Python command-line tool that retrieves brewery records from the [Brewers Association](https://www.brewersassociation.org/), normalizes them into a consistent structure, classifies them, and exports JSON datasets, statistics, and optional diagnostic reports.
 
-> **Project status:** Work in progress. Something I started to learn more about Python and because I'm a beerenthusiast.  Maybe I'll expand on this into something else over time.
+> **Project status:** Work in progress. A learning project — Python practice from someone who likes beer. May grow into a bigger brewery-finder app over time (see `docs/PLAN.md`).
 
 ## What it does
 
 - Fetches the Brewers Association's published JSON data.
-- Normalizes source records into `Brewery` models.
+- Normalizes source records into `Brewery` models (see `docs/DATA_MODEL.md`).
 - Classifies records into categories such as `brewery`, `brewing_business`, `planning`, `location`, `household`, and `unclassified`.
 - Generates summary statistics, including geographic coverage and parent-child relationships.
-- Runs named diagnostic reports to investigate data quality and source fields.
+- Runs named diagnostic reports to investigate data quality (see `docs/DIAGNOSTICS.md`).
 - Writes separate JSON files for breweries, statistics, and (when requested) diagnostics.
 
-## Requirements and setup
+## Quick start
 
-- Python 3.10 or newer (the model uses `str | None` type annotations).
-- Project dependencies include `pydantic` and `rich`. Other dependencies may be required by your local implementation; consult the project's dependency file if present.
-
-From the project root, create and activate a virtual environment:
+Requirements: Python 3.11+, plus the packages in `requirements-dev.txt` (installed by `pip-install.cmd`). Full setup instructions live in `docs/DEVELOPMENT.md`.
 
 ```powershell
 py -m venv .venv
 .\.venv\Scripts\Activate.ps1
-```
-
-Install dependencies using the project's dependency file, if one is present. If not, the known core dependencies can be installed with:
-
-```powershell
-python -m pip install pydantic rich
-```
-
-The normalization code may also require `pycountry`:
-
-```powershell
-python -m pip install pycountry
-```
-
-## Quick start
-
-From the project root:
-
-```powershell
+pip install -r requirements-dev.txt
 python main.py
 ```
 
@@ -74,71 +53,11 @@ python main.py --list-diagnostics
 # Run a single report
 python main.py --diagnostics parent-coverage
 
-# Run several reports
-python main.py --diagnostics parent-coverage household-records
-
 # Run every registered report
 python main.py --diagnostics all
-
-# Choose output locations
-python main.py --output data/breweries.json --stats-output data/stats.json
-
-# Save diagnostics to a different file
-python main.py --diagnostics us-region-issues --diagnostics-output reports/regions.json
 ```
 
-The available report names are defined in `scraper/diagnostics.py`; `--list-diagnostics` is the authoritative list for your checkout. Running diagnostics also runs the normal brewery and statistics exports. Each diagnostic run overwrites its configured output file.
-
-## Output formats
-
-All three output files include the same run metadata:
-
-```json
-{
-  "generated_at": "2026-10-31T22:00:00+00:00",
-  "source": "Brewers Association",
-  "source_url": "https://www.brewersassociation.org/wp-content/themes/ba2019/json-store/breweries/breweries.json",
-  "schema_version": "1.0",
-  "normalization_version": "1.0",
-  "count": 20631,
-  "normalized_count": 20631
-}
-```
-
-The timestamp and counts above are illustrative. `count` is the number of fetched source records; `normalized_count` is the number of normalized records exported.
-
-The brewery file adds a `breweries` array containing normalized model fields. The statistics file adds a `stats` object. The diagnostics file adds a `diagnostics` object keyed by the selected report names. Diagnostic output is only written when `--diagnostics` is supplied.
-
-## Data model and classification
-
-The source JSON uses Salesforce-style field names and nested objects. Normalization converts those records to `Brewery` models with consistent field names, including location, contact details, brewery type, parent references, and a derived `record_category`.
-
-**Important distinctions:**
-
-- `brewery_type` comes from the source; `record_category` is assigned by this project.
-- A record categorized as `location` may be associated with a parent organization, but that does not establish independent brewing activity.
-- A parent relationship reflects the source's account hierarchy; it is not necessarily proof of legal ownership.
-- Missing brewery types and incomplete addresses occur in the source. An `unclassified` record should not automatically be discarded.
-
-Classification rules live in `scraper/classify.py`.
-
-## Diagnostics
-
-Diagnostics are exploratory reports, distinct from the standard statistics generated on every run.
-
-The registry in `scraper/diagnostics.py` separates two kinds of analyses:
-
-- **Raw diagnostics:** receive original source dictionaries from `fetch_url()`.
-- **Normalized diagnostics:** receive `Brewery` objects from `normalize_breweries()`.
-
-To add a diagnostic:
-
-1. Write a function that accepts the appropriate dataset and returns JSON-serializable results.
-2. Register it in `RAW_DIAGNOSTICS` or `NORMALIZED_DIAGNOSTICS`.
-3. Verify its name appears with `python main.py --list-diagnostics`.
-4. Run it with `python main.py --diagnostics your-report-name`.
-
-Avoid printing from diagnostic functions; returning structured data keeps reports reusable for JSON export and later analysis. For `Counter` or tuple-keyed results, convert them into JSON-compatible dictionaries or lists before returning.
+Full CLI reference: `docs/CLI.md`.
 
 ## Project layout
 
@@ -154,8 +73,12 @@ brewery-scraper/
 │   ├── stats.py            # Regular summary statistics
 │   ├── diagnostics.py      # Optional investigative reports
 │   └── export.py           # General-purpose JSON writer
+├── tests/                  # pytest test suite
+├── docs/                   # Detailed documentation
 └── data/                   # Default generated output files
 ```
+
+How the pieces fit together: `docs/PIPELINE.md`.
 
 ## Data source and limitations
 
@@ -167,10 +90,21 @@ https://www.brewersassociation.org/wp-content/themes/ba2019/json-store/breweries
 
 This is a third-party published dataset and may change in availability, schema, completeness, and contents. The project is not affiliated with or endorsed by the Brewers Association. Review source terms before redistributing collected data.
 
+## Docs
+
+| Doc | Contents |
+| --- | --- |
+| `docs/DEVELOPMENT.md` | Environment setup, dependencies, running tests and lint |
+| `docs/PIPELINE.md` | How data flows through the modules |
+| `docs/DATA_MODEL.md` | Output file formats, the `Brewery` model, classification rules |
+| `docs/CLI.md` | Full command-line reference with examples |
+| `docs/DIAGNOSTICS.md` | How diagnostics work and how to add one |
+| `docs/PLAN.md` | Long-term vision: the brewery discovery platform |
+| `docs/BACKLOG.md` | Backlog of ideas and future work |
+
 ## Possible next steps
 
-- Add automated tests for normalization, classification, and diagnostics.
-- Add a dependency lockfile or documented `requirements.txt`.
+- Pin dependency versions or add a lockfile; `requirements.txt` lists names only.
 - Add source validation and clearer handling of network failures.
 - Introduce optional filters (for example, state or record category).
 - Add dataset quality checks and track changes between runs.

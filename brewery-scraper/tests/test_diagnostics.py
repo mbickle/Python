@@ -1,3 +1,5 @@
+import pytest
+
 from scraper.diagnostics import (
     analyze_household_records,
     analyze_household_types,
@@ -6,6 +8,7 @@ from scraper.diagnostics import (
     analyze_raw_record_types,
     analyze_unknown_brewery_types,
     analyze_unknown_types_by_country,
+    analyze_us_missing_region,
     analyze_us_unknown_types,
     available_diagnostics,
     run_diagnostics,
@@ -293,3 +296,88 @@ def test_household_types():
 
     assert result["Household"]["UNKNOWN"] == 2
     assert result["Other"]["Micro"] == 1
+
+def test_unknown_brewery_types_website_and_craft_flags(raw_brewery):
+    raw_data = [
+        raw_brewery(
+            name="Web Brewing",
+            brewery_type=None,
+            craft=True,
+        ),
+    ]
+    raw_data[0]["Website"] = "https://web.example"
+
+    result = analyze_unknown_brewery_types(raw_data)
+
+    assert result["with_website"] == 1
+    assert result["craft_flags"]["True"] == 1
+
+
+def test_us_missing_region_all_branches():
+    missing = [
+        {"name": "Smith Household"},
+        {"name": "Homebrew Haven"},
+        {"name": "Brew Club"},
+        {"name": "Known Brewing"},
+        {"name": None},
+    ]
+
+    result = analyze_us_missing_region(missing)
+
+    assert result["Household"] == 1
+    assert result["Homebrew"] == 1
+    assert result["Club"] == 1
+    # "Known Brewing" and the None name both fall through to Other
+    assert result["Other"] == 2
+
+
+def _us_brewery(brewery_id, state_code=None, state=None, country_code="US"):
+    return Brewery(
+        id=brewery_id,
+        name=f"Brewery {brewery_id}",
+        country_code=country_code,
+        state_code=state_code,
+        state=state,
+        city="Austin",
+    )
+
+
+def test_get_us_breweries_missing_region():
+    from scraper.diagnostics import get_us_breweries_missing_region
+
+    breweries = [
+        _us_brewery("001"),  # US, no region -> included
+        _us_brewery("002", state_code="TX"),  # has region -> excluded
+        _us_brewery("003", country_code="CA"),  # not US -> excluded
+        _us_brewery("004", country_code=None),  # blank code -> excluded
+    ]
+
+    missing = get_us_breweries_missing_region(breweries)
+
+    assert len(missing) == 1
+    assert missing[0]["name"] == "Brewery 001"
+    assert missing[0]["city"] == "Austin"
+
+
+def test_get_us_region_pairs():
+    from scraper.diagnostics import get_us_region_pairs
+
+    breweries = [
+        _us_brewery("001", state_code="TX", state="Texas"),
+        _us_brewery("002", state_code="TX", state="Texas"),
+        _us_brewery("003", state="Texas"),  # code missing
+        _us_brewery("004"),  # both missing -> excluded
+        _us_brewery("005", state_code="CA", country_code="CA"),
+    ]
+
+    pairs = get_us_region_pairs(breweries)
+
+    assert pairs[("TX", "Texas")] == 2
+    assert pairs[("MISSING", "Texas")] == 1
+    assert ("MISSING", "MISSING") not in pairs
+    assert sum(pairs.values()) == 3
+
+
+def test_run_diagnostics_unknown_name_raises():
+    with pytest.raises(ValueError, match="Unknown diagnostic"):
+        run_diagnostics(["no-such-report"], [], [])

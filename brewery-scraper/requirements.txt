@@ -1,0 +1,6 @@
+# Runtime dependencies
+requests
+rich
+pydantic
+phonenumbers
+pycountry

@@ -27,7 +27,7 @@ def fetch_url(
     Raises:
         requests.RequestException: If an HTTP request fails
             after all retries.
-        ValueError: If the response contains unexpected data.
+        TypeError: If the response contains unexpected data.
     """
     if retries < 1:
         raise ValueError("retries must be at least 1")
@@ -64,4 +64,6 @@ def fetch_url(
 
     # This should never be reached because the final failed
     # attempt raises an exception.
-    raise RuntimeError("Fetch failed unexpectedly")
+    raise RuntimeError(  # pragma: no cover - unreachable: final attempt always raises
+        "Fetch failed unexpectedly"
+    )

@@ -1,5 +1,5 @@
 import argparse
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from rich import print
 
@@ -18,7 +18,7 @@ def run_cli():
     parser.add_argument(
         "--output",
         type=str,
-        default="data\\breweries.json",
+        default="data/breweries.json",
         help="Output JSON file"
     )
 
@@ -31,7 +31,7 @@ def run_cli():
     parser.add_argument(
         "--stats-output",
         type=str,
-        default="data\\breweries-stats.json",
+        default="data/breweries-stats.json",
         help="Statistics JSON output file"
     )
 
@@ -106,7 +106,7 @@ def run_cli():
         )
 
     metadata = {
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": datetime.now(UTC).isoformat(),
         "source": "Brewers Association",
         "source_url": source_url,
         "schema_version": "1.0",

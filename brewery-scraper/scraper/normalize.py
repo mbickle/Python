@@ -1,5 +1,7 @@
 import phonenumbers
 import pycountry
+from pydantic import ValidationError
+from rich import print
 
 from scraper.classify import classify_brewery
 from scraper.models import Brewery
@@ -89,51 +91,70 @@ def normalize_phone(phone, country):
 
 def normalize_breweries(raw_data):
     breweries = []
+    skipped = 0
 
-    for item in raw_data:
+    for index, item in enumerate(raw_data):
+        try:
+            breweries.append(normalize_brewery(item))
+        # Deliberately narrow to malformed-record errors: one bad
+        # record must not abort the run, but real bugs still should.
+        except (AttributeError, TypeError, ValidationError) as ex:
+            skipped += 1
+            print(
+                f"[yellow]Warning: skipping record "
+                f"at index {index}: {ex}[/yellow]"
+            )
 
-        address = item.get("BillingAddress") or {}
-        country = clean_text(address.get("country"))
-        parent = item.get("Parent") or {}
-
-        brewery = Brewery(
-            id=item.get("Id"),
-            name=clean_text(item.get("Name")) or "Unknown",
-
-            brewery_type=clean_text(
-                item.get("Brewery_Type__c")
-            ),
-
-            phone=clean_text(item.get("Phone")),
-            phone_normalized=normalize_phone(
-                item.get("Phone"),
-                country
-            ),
-            website=clean_text(item.get("Website")),
-
-            street=clean_text(address.get("street")),
-            city=clean_text(address.get("city")),
-
-            state=clean_text(address.get("state")),
-            state_code=normalize_code(
-                address.get("stateCode")
-            ),
-
-            postal_code=clean_text(
-                address.get("postalCode")
-            ),
-
-            country=country,
-            country_code=get_country_code(country),
-
-            latitude=address.get("latitude"),
-            longitude=address.get("longitude"),
-
-            parent_id=parent.get("Id"),
-            parent_name=parent.get("Name"),
+    if skipped:
+        print(
+            f"[yellow]Skipped {skipped} invalid "
+            f"record(s) out of {len(raw_data)}[/yellow]"
         )
 
-        brewery.record_category = classify_brewery(brewery)
-        breweries.append(brewery)
-
     return breweries
+
+
+def normalize_brewery(item):
+    address = item.get("BillingAddress") or {}
+    country = clean_text(address.get("country"))
+    parent = item.get("Parent") or {}
+
+    brewery = Brewery(
+        id=item.get("Id"),
+        name=clean_text(item.get("Name")) or "Unknown",
+
+        brewery_type=clean_text(
+            item.get("Brewery_Type__c")
+        ),
+
+        phone=clean_text(item.get("Phone")),
+        phone_normalized=normalize_phone(
+            item.get("Phone"),
+            country
+        ),
+        website=clean_text(item.get("Website")),
+
+        street=clean_text(address.get("street")),
+        city=clean_text(address.get("city")),
+
+        state=clean_text(address.get("state")),
+        state_code=normalize_code(
+            address.get("stateCode")
+        ),
+
+        postal_code=clean_text(
+            address.get("postalCode")
+        ),
+
+        country=country,
+        country_code=get_country_code(country),
+
+        latitude=address.get("latitude"),
+        longitude=address.get("longitude"),
+
+        parent_id=parent.get("Id"),
+        parent_name=parent.get("Name"),
+    )
+
+    brewery.record_category = classify_brewery(brewery)
+    return brewery

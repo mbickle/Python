@@ -557,7 +557,6 @@ NORMALIZED_DIAGNOSTICS = {
     "us-region-issues": analyze_us_region_issues,
 }
 
-
 def available_diagnostics():
     """
     Return the names of all available diagnostic reports.
@@ -568,8 +567,6 @@ def available_diagnostics():
     return sorted(
         set(RAW_DIAGNOSTICS) | set(NORMALIZED_DIAGNOSTICS)
     )
-
-
 
 def run_diagnostics(names, raw_data, breweries):
     """

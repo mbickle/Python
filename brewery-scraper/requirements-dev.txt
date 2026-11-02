@@ -1,0 +1,5 @@
+# Development dependencies (testing and lint)
+-r requirements.txt
+pytest
+pytest-cov
+ruff

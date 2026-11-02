@@ -1,3 +1,3 @@
-python -m venv .venv
-call .\venv\scripts\activate
-call pip-install.cmd
+python -m venv "%~dp0.venv"
+call "%~dp0.venv\Scripts\Activate.bat"
+call "%~dp0pip-install.cmd"

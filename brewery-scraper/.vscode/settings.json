@@ -25,9 +25,21 @@
             "justMyCode": true
         }
     ],
-    "python.testing.pytestArgs": [
-        "tests"
-    ],
-    "python.testing.unittestEnabled": false,
-    "python.testing.pytestEnabled": true
+	"python.defaultInterpreterPath": "${workspaceFolder}/.venv/Scripts/python.exe",
+	"python.analysis.extraPaths": ["${workspaceFolder}"],
+	"python.testing.pytestArgs": [
+	        "tests"
+	],
+	"python.testing.cwd": "${workspaceFolder}",
+	"python.testing.unittestEnabled": false,
+	"python.testing.pytestEnabled": true,
+	"ruff.path": ["${workspaceFolder}/.venv/Scripts/ruff.exe"],
+	"[python]": {
+		"editor.defaultFormatter": "charliermarsh.ruff",
+		"editor.formatOnSave": true,
+		"editor.codeActionsOnSave": {
+			"source.fixAll.ruff": "explicit",
+			"source.organizeImports.ruff": "explicit"
+		}
+	}
 }
