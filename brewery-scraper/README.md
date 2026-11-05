@@ -1,6 +1,6 @@
 # Brewery Scraper
 
-A Python command-line tool that retrieves brewery records from the [Brewers Association](https://www.brewersassociation.org/), normalizes them into a consistent structure, classifies them, and exports JSON datasets, statistics, and optional diagnostic reports.
+A Python command-line tool that retrieves brewery records from the [Brewers Association](https://www.brewersassociation.org/), normalizes them into a consistent structure, classifies them, and exports JSON datasets, statistics, optional diagnostic reports, and read-only SQLite/PostgreSQL database artifacts.
 
 > **Project status:** Work in progress. A learning project — Python practice from someone who likes beer. May grow into a bigger brewery-finder app over time.
 
@@ -12,10 +12,11 @@ A Python command-line tool that retrieves brewery records from the [Brewers Asso
 - Generates summary statistics, including geographic coverage and parent-child relationships.
 - Runs named diagnostic reports to investigate data quality (see `docs/DIAGNOSTICS.md`).
 - Writes separate JSON files for breweries, statistics, and (when requested) diagnostics.
+- Writes `data/breweries.db` by default, plus an optional PostgreSQL copy when a DSN is supplied.
 
 ## Quick start
 
-Requirements: Python 3.11+, plus the packages in `requirements-dev.txt` (installed by `pip-install.cmd`). Full setup instructions live in `docs/DEVELOPMENT.md`.
+Requirements: Python 3.11+, plus the packages in `requirements-dev.txt` (installed by `pip-install.cmd`). Full setup instructions live in `docs/DEVELOPMENT.md`, including the [local PostgreSQL/Docker commands](docs/DEVELOPMENT.md#local-postgresql-with-docker).
 
 ```powershell
 py -m venv .venv
@@ -32,8 +33,9 @@ By default, this writes:
 | --- | --- |
 | `data/breweries.json`       | Shared metadata and normalized brewery records |
 | `data/breweries-stats.json` | Shared metadata and generated statistics |
+| `data/breweries.db`         | Read-only SQLite database for the mobile app |
 
-Diagnostics are not run unless requested.
+Diagnostics are not run unless requested. The SQLite file is written on every run; pass `--skip-sqlite` when you only need JSON.
 
 ## Command-line options
 
@@ -41,8 +43,11 @@ Diagnostics are not run unless requested.
 | --- | --- |
 | `--output PATH` | Brewery JSON output; default `data/breweries.json` |
 | `--stats-output PATH` | Statistics JSON output; default `data/breweries-stats.json` |
+| `--sqlite-output PATH` | SQLite database output; default `data/breweries.db` |
+| `--skip-sqlite` | Skip the SQLite database export |
+| `--postgres-url DSN` | Also load the snapshot into PostgreSQL; omitted by default |
 | `--url URL` | Override the source JSON URL |
-| `--input PATH` | Reuse an existing brewery export instead of fetching; writes stats and normalized diagnostics only |
+| `--input PATH` | Reuse an existing brewery export instead of fetching; still runs stats, diagnostics, and database exports |
 | `--raw-input PATH` | Use a saved raw source snapshot instead of downloading; supports every diagnostic |
 | `--refresh` | Download the source again instead of using the cached copy |
 | `--list-diagnostics` | Show available diagnostic names without fetching data |
@@ -60,6 +65,13 @@ python main.py --diagnostics parent-coverage
 
 # Run every registered report
 python main.py --diagnostics all
+
+# Rebuild the SQLite artifact from an existing JSON snapshot
+python main.py --input data/breweries.json --sqlite-output data/breweries.db
+
+# Also load PostgreSQL (PowerShell)
+$env:DATABASE_URL = "postgresql://user:password@host/dbname"
+python main.py --postgres-url $env:DATABASE_URL
 ```
 
 Full CLI reference: `docs/CLI.md`.
@@ -77,6 +89,7 @@ brewery-scraper/
 │   ├── classify.py         # Derived record categories
 │   ├── stats.py            # Regular summary statistics
 │   ├── diagnostics.py      # Optional investigative reports
+│   ├── db_export.py        # SQLite and PostgreSQL exporters
 │   └── export.py           # JSON read/write helpers
 ├── tests/                  # pytest test suite
 ├── docs/                   # Detailed documentation

@@ -103,10 +103,12 @@ def normalize_phone(phone, country):
 def normalize_breweries(raw_data):
     breweries = []
     skipped = 0
+    duplicates = 0
+    seen_ids = set()
 
     for index, item in enumerate(raw_data):
         try:
-            breweries.append(normalize_brewery(item))
+            brewery = normalize_brewery(item)
         # Deliberately narrow to malformed-record errors: one bad
         # record must not abort the run, but real bugs still should.
         except (AttributeError, TypeError, ValidationError) as ex:
@@ -115,11 +117,29 @@ def normalize_breweries(raw_data):
                 f"[yellow]Warning: skipping record "
                 f"at index {index}: {ex}[/yellow]"
             )
+            continue
+
+        # The source occasionally repeats an ID, sometimes appending a
+        # planning or household version later. Keep the first, canonical
+        # occurrence so database primary keys stay valid and output is
+        # deterministic.
+        if brewery.id in seen_ids:
+            duplicates += 1
+            continue
+
+        seen_ids.add(brewery.id)
+        breweries.append(brewery)
 
     if skipped:
         print(
             f"[yellow]Skipped {skipped} invalid "
             f"record(s) out of {len(raw_data)}[/yellow]"
+        )
+
+    if duplicates:
+        print(
+            f"[yellow]Skipped {duplicates} duplicate record(s) "
+            f"with repeated IDs; kept the first occurrence.[/yellow]"
         )
 
     return breweries

@@ -11,6 +11,9 @@ fetch_url() ─────┘      (normalize.py)            (stats.py)        
               classify_brewery()
                 (classify.py)
 
+  normalized records ──► export_sqlite()   (db_export.py)
+                     └──► export_postgres() (db_export.py, optional)
+
   optional: run_diagnostics() ──► export_json()
               (diagnostics.py)
 ```
@@ -44,6 +47,7 @@ With `--input PATH`, the fetch and normalize stages are skipped entirely. `load_
 - Country names are resolved to ISO alpha-2 codes via `pycountry`, with a small override table (`COUNTRY_OVERRIDES`) for names `pycountry` doesn't recognize.
 - Phone numbers are parsed with `phonenumbers` and formatted as E.164 when valid (`normalize_phone`).
 - Parent organization info is pulled from the nested `Parent` object.
+- Records are deduplicated by source `id`; the first valid occurrence wins and later duplicates are skipped with a warning. The source occasionally repeats IDs and appends a planning or household version later, so keeping the first record preserves the canonical entry.
 
 Each record is then classified (next stage) before being added to the result list.
 
@@ -77,9 +81,20 @@ Household detection is defined once, as `is_household()` in `scraper/classify.py
 - Geographic anomalies: state codes shared across countries, states without codes, codes without states.
 - Relationship stats: parent/child grouping, largest parent groups, parents missing from the dataset.
 
-### 5. Export (`scraper/export.py`)
+### 5. JSON export (`scraper/export.py`)
 
 `export_json(data, filename)` writes any JSON-serializable object to disk with UTF-8 encoding and 2-space indentation, creating parent directories as needed.
+
+### 6. Database export (`scraper/db_export.py`)
+
+The same normalized records and run metadata feed two read-only database sinks:
+
+- **SQLite:** `export_sqlite(breweries, metadata, path)` writes `breweries` and `metadata` tables plus lookup indexes. It writes to a temporary file beside the destination and uses `os.replace()` only after every insert succeeds, so a bad run cannot corrupt an existing `breweries.db`.
+- **PostgreSQL:** `export_postgres(breweries, metadata, dsn)` creates the tables if needed, copies rows into a temporary staging table with `COPY`, then replaces the live rows in one transaction. Readers see the previous snapshot until commit. This is opt-in via `--postgres-url`.
+
+Both exporters share `BREWERY_COLUMNS` and JSON-encoded metadata, so their field order and metadata representation cannot drift. See `docs/DATA_MODEL.md` for the resulting schema.
+
+When `--input` is used, the JSON brewery export is skipped but these database exporters still run from the loaded records.
 
 ### Diagnostics (optional)
 

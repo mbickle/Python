@@ -71,6 +71,7 @@ def test_all_keyword_runs_live_fetch(monkeypatch, tmp_path, raw_cache):
         "--diagnostics", "all",
         "--output", str(tmp_path / "b.json"),
         "--stats-output", str(tmp_path / "s.json"),
+        "--sqlite-output", str(tmp_path / "breweries.db"),
         "--diagnostics-output", str(tmp_path / "d.json"),
     ])
 
@@ -92,14 +93,17 @@ def test_input_mode_skips_fetch_and_brewery_export(
 
     output = tmp_path / "out.json"
     stats_output = tmp_path / "stats.json"
+    sqlite_output = tmp_path / "breweries.db"
 
     assert main([
         "--input", str(source),
         "--output", str(output),
         "--stats-output", str(stats_output),
+        "--sqlite-output", str(sqlite_output),
     ]) == 0
 
     assert not output.exists()
+    assert sqlite_output.exists()
 
     payload = json.loads(stats_output.read_text(encoding="utf-8"))
 
@@ -119,6 +123,7 @@ def test_input_mode_runs_normalized_diagnostics(tmp_path):
         "--diagnostics", "parent-coverage",
         "--output", str(tmp_path / "o.json"),
         "--stats-output", str(tmp_path / "s.json"),
+        "--sqlite-output", str(tmp_path / "breweries.db"),
         "--diagnostics-output", str(diagnostics_output),
     ]) == 0
 
@@ -146,6 +151,20 @@ def test_input_and_url_conflict(tmp_path, capsys):
         main(["--input", str(source), "--url", "https://example.com/x.json"])
 
     assert "--input cannot be combined with --url" in capsys.readouterr().err
+
+
+def test_input_file_must_exist(tmp_path, capsys):
+    missing = tmp_path / "missing.json"
+
+    with pytest.raises(SystemExit) as excinfo:
+        main(["--input", str(missing)])
+
+    assert excinfo.value.code == 2
+
+    err = capsys.readouterr().err
+    assert f"--input file not found: {missing}" in err
+    assert "Run without --input" in err
+    assert "Traceback" not in err
 
 
 @pytest.fixture
@@ -177,6 +196,7 @@ def _paths(tmp_path):
     return [
         "--output", str(tmp_path / "breweries.json"),
         "--stats-output", str(tmp_path / "stats.json"),
+        "--sqlite-output", str(tmp_path / "breweries.db"),
     ]
 
 
@@ -293,6 +313,47 @@ def test_input_rejects_refresh(tmp_path, capsys):
 
     err = capsys.readouterr().err
     assert "--input cannot be combined with --refresh" in err
+
+
+def test_skip_sqlite_does_not_write_database(tmp_path):
+    source = _write_export(tmp_path, [_record()])
+
+    assert main([
+        "--input", str(source),
+        "--skip-sqlite",
+        "--stats-output", str(tmp_path / "stats.json"),
+    ]) == 0
+
+    assert not (tmp_path / "breweries.db").exists()
+
+
+def test_postgres_url_exports_loaded_records(monkeypatch, tmp_path):
+    source = _write_export(tmp_path, [_record()])
+    sqlite_output = tmp_path / "breweries.db"
+    called = {}
+
+    def fake_export_postgres(breweries, metadata, dsn):
+        called["breweries"] = breweries
+        called["metadata"] = metadata
+        called["dsn"] = dsn
+
+    monkeypatch.setattr(
+        "scraper.cli.export_postgres",
+        fake_export_postgres,
+    )
+
+    assert main([
+        "--input", str(source),
+        "--sqlite-output", str(sqlite_output),
+        "--postgres-url", "postgresql://example/test",
+        "--stats-output", str(tmp_path / "stats.json"),
+    ]) == 0
+
+    assert len(called["breweries"]) == 1
+    assert called["metadata"]["schema_version"] == "1.0"
+    assert called["metadata"]["input"] == str(source)
+    assert called["dsn"] == "postgresql://example/test"
+    assert sqlite_output.exists()
 
 
 def test_empty_source_response_does_not_overwrite_the_cache(

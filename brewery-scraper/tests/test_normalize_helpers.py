@@ -87,6 +87,35 @@ def test_normalize_breweries_skips_invalid_record(capsys):
     assert "Skipped 1 invalid" in output
 
 
+def test_normalize_breweries_keeps_first_duplicate_id(capsys):
+    raw_data = [
+        {
+            "Id": "001",
+            "Name": "Active Brewing",
+            "Brewery_Type__c": "Micro",
+            "Is_Craft_Brewery__c": True,
+        },
+        {
+            "Id": "001",
+            "Name": "Planning Brewing",
+            "Brewery_Type__c": "Brewery In Planning",
+            "Is_Craft_Brewery__c": False,
+        },
+    ]
+
+    result = normalize_breweries(raw_data)
+
+    assert len(result) == 1
+    assert result[0].name == "Active Brewing"
+    assert result[0].brewery_type == "Micro"
+    assert result[0].record_category == "brewery"
+    assert result[0].is_craft_brewery is True
+
+    output = capsys.readouterr().out
+    assert "Skipped 1 duplicate" in output
+    assert "first occurrence" in output
+
+
 def test_normalize_breweries_empty_list():
     assert normalize_breweries([]) == []
 

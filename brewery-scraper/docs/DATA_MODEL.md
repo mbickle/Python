@@ -28,12 +28,13 @@ A pydantic model with consistent field names, regardless of what the source call
 - A parent relationship reflects the source's account hierarchy; it is not necessarily proof of legal ownership.
 - `is_craft_brewery` is the source's craft designation, populated for non-members too; treat it as a claim carried by the source, not as membership. The source's membership fields (`Membership_Record_*`, `Voting_Member__c`, `Account_Badges__c`) are deliberately not modeled.
 - `source` and `source_url` are `null` when the data came from `--raw-input`, since the snapshot's origin is unknown.
+- `id` is unique in normalized output. When the source repeats an ID, the first valid record wins and later duplicates are skipped, so `normalized_count` can be lower than `count`.
 - Output files are gitignored local artifacts. A fresh clone has none until the first run downloads the source.
 - Missing brewery types and incomplete addresses occur in the source. An `unclassified` record should not automatically be discarded.
 
 ## Output files
 
-All three output files include the same run metadata:
+All three JSON output files include the same run metadata:
 
 ```json
 {
@@ -49,8 +50,32 @@ All three output files include the same run metadata:
 }
 ```
 
-The timestamp and counts above are illustrative. `count` is the number of fetched source records; `normalized_count` is the number of normalized records exported.
+The timestamp and counts above are illustrative. `count` is the number of fetched source records; `normalized_count` is the number of normalized records exported. It can be lower than `count` because malformed records and repeated IDs are skipped.
 
 - The brewery file adds a `breweries` array containing normalized model fields.
 - The statistics file adds a `stats` object (see `generate_stats` in `scraper/stats.py`).
 - The diagnostics file adds a `diagnostics` object keyed by the selected report names. It is only written when `--diagnostics` is supplied.
+
+## Database artifacts
+
+`scraper/db_export.py` builds two read-only sinks from the same normalized snapshot. They use the same column order and metadata encoding, but have different storage types.
+
+### `breweries` table
+
+The table contains one row per normalized `Brewery`, with columns named exactly as the JSON fields. `id` is the primary key and `name` is required; every other field is nullable.
+
+| Field group | SQLite | PostgreSQL |
+| --- | --- | --- |
+| IDs and names (`id`, `name`, `parent_id`, `parent_name`) | `TEXT` | `TEXT` |
+| Address (`brewery_type`, `street`, `city`, `state`, `state_code`, `postal_code`, `country`, `country_code`) | `TEXT` | `TEXT` |
+| Contact (`website`, `phone`, `phone_normalized`) | `TEXT` | `TEXT` |
+| Coordinates (`latitude`, `longitude`) | `REAL` | `DOUBLE PRECISION` |
+| Classification (`record_category`, `is_craft_brewery`) | `TEXT`, `INTEGER` (`0`/`1`) | `TEXT`, `BOOLEAN` |
+
+Indexes ship on `(latitude, longitude)`, `name`, and `(city, state)`. Records without coordinates still exist in the table but are excluded from nearby queries.
+
+### `metadata` table
+
+`metadata` is a key/value table. Values are JSON-encoded strings, so a consumer can decode `generated_at`, `count`, `normalized_count`, `schema_version`, and the other run metadata without losing number, boolean, or null types.
+
+The SQLite artifact is written to a temporary file and atomically moved into place. The PostgreSQL exporter creates the read-only tables if needed, stages rows in a temporary table, and replaces the live rows in one transaction. Future writable tables and their migrations belong to the API, not this exporter.

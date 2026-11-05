@@ -4,6 +4,7 @@ from pathlib import Path
 
 from rich import print
 
+from scraper.db_export import export_postgres, export_sqlite
 from scraper.diagnostics import (
     NORMALIZED_DIAGNOSTICS,
     RAW_DIAGNOSTICS,
@@ -27,6 +28,7 @@ DEFAULT_SOURCE_URL = (
 )
 
 DEFAULT_OUTPUT = "data/breweries.json"
+DEFAULT_SQLITE_OUTPUT = "data/breweries.db"
 DEFAULT_STATS_OUTPUT = "data/breweries-stats.json"
 DEFAULT_DIAGNOSTICS_OUTPUT = "data/diagnostics.json"
 
@@ -68,6 +70,26 @@ def build_parser() -> argparse.ArgumentParser:
         "--refresh",
         action="store_true",
         help="Download the source again instead of using the cached copy",
+    )
+
+    parser.add_argument(
+        "--sqlite-output",
+        type=str,
+        default=DEFAULT_SQLITE_OUTPUT,
+        help="SQLite database output file",
+    )
+
+    parser.add_argument(
+        "--skip-sqlite",
+        action="store_true",
+        help="Do not write the SQLite database",
+    )
+
+    parser.add_argument(
+        "--postgres-url",
+        type=str,
+        metavar="DSN",
+        help="PostgreSQL connection string; exports only when provided",
     )
 
     parser.add_argument(
@@ -151,6 +173,13 @@ def _validate_args(
     for mode, flags in _mode_conflicts(args):
         parser.error(
             f"{mode} cannot be combined with " + " or ".join(flags)
+        )
+
+    if args.input and not Path(args.input).is_file():
+        parser.error(
+            f"--input file not found: {args.input}. "
+            "Run without --input to download and create it, "
+            "or point --input at an existing brewery export."
         )
 
     if args.input and args.diagnostics:
@@ -338,6 +367,17 @@ def main(argv: list[str] | None = None) -> int:
         )
 
         export_json(diagnostic_payload, args.diagnostics_output)
+
+    if not args.skip_sqlite:
+        print(
+            f"[cyan]Exporting SQLite database to "
+            f"{args.sqlite_output}...[/cyan]"
+        )
+        export_sqlite(breweries, metadata, args.sqlite_output)
+
+    if args.postgres_url:
+        print("[cyan]Exporting to PostgreSQL...[/cyan]")
+        export_postgres(breweries, metadata, args.postgres_url)
 
     print(f"[green]Exported {len(breweries)} records[/green]")
     print("[green]Done![/green]")
